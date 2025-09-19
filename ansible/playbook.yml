@@ -1,0 +1,5 @@
+- name: Déploiement de l'application sur Azure VM
+  hosts: app
+  become: true
+  roles:
+    - docker_deploy

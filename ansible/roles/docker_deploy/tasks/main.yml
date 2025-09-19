@@ -1,0 +1,21 @@
+- name: Installer les dépendances
+  apt:
+    name: [docker.io, docker-compose, git]
+    state: present
+    update_cache: yes
+
+- name: Démarrer Docker
+  systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Cloner le dépôt de l'application
+  git:
+    repo: 'https://gitlab.com/ton_projet/ton_repo.git'
+    dest: /opt/app
+
+- name: Lancer l'application avec docker-compose
+  shell: docker-compose up -d
+  args:
+    chdir: /opt/app
