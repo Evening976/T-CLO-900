@@ -1,0 +1,21 @@
+---
+- name: Automatisation du déploiement Docker et de l'application
+  hosts: all
+  become: true
+  vars:
+    app_path: "/home/azureuser/myapp"
+    source_app_path: "{{ ansible_playbook_dir }}/../app/"
+  roles:
+    - docker_install
+    - copy_app
+
+  tasks:
+    - name: Mise a jour du cache apt
+      apt:
+        update_cache: yes
+
+    - name: Lancer Docker Compose
+      command: docker-compose up --build -d
+      args:
+        chdir: "{{ app_path }}"
+      when: compose_version.rc == 0

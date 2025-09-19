@@ -21,6 +21,16 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
+#Permet d'avoir une ip publique et d'acceder a la machine
+resource "azurerm_public_ip" "public" {
+  name                = "public-ip"
+  location            = data.azurerm_resource_group.existing.location
+  resource_group_name = data.azurerm_resource_group.existing.name
+  allocation_method   = "Static"
+}
+
+
+#Carte réseau de la VM
 resource "azurerm_network_interface" "nic" {
   name                = "nic"
   location            = data.azurerm_resource_group.existing.location
@@ -34,20 +44,14 @@ resource "azurerm_network_interface" "nic" {
   }
 }
 
-resource "azurerm_public_ip" "public" {
-  name                = "public-ip"
-  location            = data.azurerm_resource_group.existing.location
-  resource_group_name = data.azurerm_resource_group.existing.name
-  allocation_method   = "Static"
-}
-
+# Permet l'accès en SSH
 resource "azurerm_network_security_group" "nsg" {
   name                = "nsg"
   location            = data.azurerm_resource_group.existing.location
   resource_group_name = data.azurerm_resource_group.existing.name
 
   security_rule {
-    name                       = "SSH"
+    name                       = "Allow-SSH"
     priority                   = 1001
     direction                  = "Inbound"
     access                     = "Allow"
@@ -57,27 +61,17 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-
-  security_rule {
-    name                       = "HTTP"
-    priority                   = 1002
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
 }
 
-resource "azurerm_network_interface_security_group_association" "nic-nsg" {
+#permet d'appliquer le nsg a la vm
+resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
   network_interface_id      = azurerm_network_interface.nic.id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
+#VM principale qui devra contenir le docker
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                  = "app-vm"
+  name                  = "docker-app-vm"
   resource_group_name   = data.azurerm_resource_group.existing.name
   location              = data.azurerm_resource_group.existing.location
   size                  = "Standard_B1ls"
@@ -93,12 +87,11 @@ resource "azurerm_linux_virtual_machine" "vm" {
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
-    name                 = "osdisk"
   }
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "UbuntuServer"
+    offer     = "0001-com-ubuntu-server-jammy"
     sku       = "22_04-lts"
     version   = "latest"
   }

@@ -1,0 +1,20 @@
+---
+- name: Debug - Afficher le chemin source
+  debug:
+    msg: "src: {{ source_app_path }}"
+
+- name: Créer le dossier de l'application
+  file:
+    path: "{{ app_path }}"
+    state: directory
+    owner: azureuser
+    group: azureuser
+    mode: '0755'
+
+- name: Copier les fichiers de l'application sur la VM
+  copy:
+    src: "{{ source_app_path }}"
+    dest: "{{ app_path }}"
+    owner: azureuser
+    group: azureuser
+    mode: '0755'

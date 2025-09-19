@@ -1,0 +1,1 @@
+source_app_path: "{{ ansible_playbook_dir }}/../app/"

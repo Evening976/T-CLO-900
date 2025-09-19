@@ -1,0 +1,50 @@
+---
+- name: Automatisation de l'installation de Docker
+  hosts: all
+  become: true
+  vars:
+    app_path: "/home/azureuser/myapp"   # Dossier où tu veux transférer tes fichiers
+
+  tasks:
+    - name: Mettre à jour le cache apt
+      apt:
+        update_cache: yes
+
+    - name: Installer les dépendances nécessaires
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Ajouter la clé officielle Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Ajouter le dépôt Docker APT
+      apt_repository:
+        repo: "deb [arch=amd64] signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        state: present
+
+    - name: Installer Docker et les plugins nécessaires
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Vérifier si Docker est installé
+      command: docker --version
+      register: docker_version
+      failed_when: docker_version.rc != 0
+
+    - name: Vérifier si Docker Compose est installé
+      command: docker compose --version
+      register: compose_version
+      failed_when: compose_version.rc != 0
