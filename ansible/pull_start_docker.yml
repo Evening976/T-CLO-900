@@ -1,0 +1,58 @@
+---
+- name: Déployer les conteneurs avec Docker Compose sur VM Azure
+  hosts: azure_vm
+  become: true
+  vars_files:
+    - vault.yml
+  vars:
+    app_env:
+      APP_DEBUG: "true"
+      APP_ENV: "dev"
+      APP_KEY: "{{ app_key }}"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: app_database
+      DB_USERNAME: app_user
+      DB_PASSWORD: "{{ mysql_password }}"
+      DB_ROOT_PASS: "{{mysql_root_password}}"
+
+  tasks:
+    - name: Installer Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Installer docker-compose
+      apt:
+        name: docker-compose
+        state: present
+    
+    - name: Installer docker-compose plugin
+      apt:
+        name: docker-compose-plugin
+        state: present
+
+    - name: S'assurer que Docker est démarré
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Copier docker-compose.yml
+      template:
+        src: docker-compose.yml.j2
+        dest: /home/azureuser/docker-compose.yml
+        mode: '0644'
+
+    - name: Déployer les conteneurs avec docker-compose
+      command: docker compose -f /home/azureuser/docker-compose.yml up -d
+      args:
+        chdir: /home/azureuser
+
+    - name: Exécuter les migrations Laravel
+      command: docker exec app php artisan migrate --force
+      register: migrate_result
+      changed_when: "'Nothing to migrate' not in migrate_result.stdout"
+      failed_when: migrate_result.rc != 0 and "'Nothing to migrate' not in migrate_result.stdout"
